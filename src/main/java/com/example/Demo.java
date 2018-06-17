@@ -6,11 +6,19 @@ import com.sobte.cqp.jcq.entity.IMsg;
 import com.sobte.cqp.jcq.entity.IRequest;
 import com.sobte.cqp.jcq.event.IType;
 import com.sobte.cqp.jcq.event.JcqAppAbstract;
+import com.sobte.cqp.jcq.message.CQCode;
+import org.jsoup.Connection;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import vip.vtool.jcq.annotation.Bind;
 import vip.vtool.jcq.entity.GroupMsg;
 import vip.vtool.jcq.entity.PrivateMsg;
 import vip.vtool.jcq.entity.QQMessage;
 import vip.vtool.jcq.event.JcqAppAbstractImpl;
+
+import java.io.IOException;
 
 /**
  * 本文件是JCQ插件的主类<br>
@@ -26,31 +34,39 @@ import vip.vtool.jcq.event.JcqAppAbstractImpl;
  */
 public class Demo extends JcqAppAbstractImpl implements ICQVer, IMsg, IRequest {
 
+    private CQCode cqCode = new CQCode();
+
     @Override
     public String appInfo() {
         return CQAPIVER + "," + "com.example.demo";
     }
 
-    @Bind(msgType = {IType.EVENT_PrivateMsg})
-    public int privateMsg(QQMessage message){
-        System.out.println("消息类型：" + message != null ? message.getMsgType():null);
-        PrivateMsg privateMsg = message.getPrivateMsg();
-        CQ.sendPrivateMsg(754781341,message.getMsgType() + "-----");
-        return IMsg.MSG_IGNORE;
-    }
-    @Bind(msgType = {IType.EVENT_PrivateMsg,IType.EVENT_GroupMsg})
-    public int privateMsg2(QQMessage message){
-        System.out.println("privateMsg2：" + message != null ? message.getMsgType():null);
-        CQ.sendPrivateMsg(754781341,message.getMsgType() + "-----");
+    @Bind(msgType = {IType.EVENT_GroupMsg})
+    public int 查天气(QQMessage message) throws IOException {
+        GroupMsg groupMsg = message.getGroupMsg();
+        String msg = groupMsg.getMsg().trim();
+        System.out.println(msg);
+        if(msg != null){
+            if(msg.startsWith("查天气")){
+                String city = msg.substring(3);
+                Document document = Jsoup.connect("https://www.sojson.com/open/api/weather/xml.shtml?city=" + city.trim()).get();
+                Elements select = document.select("forecast weather");
+                Element element = select.get(0);
+                String date = element.select("date").text();
+                String high = element.select("high").text();
+                String low = element.select("low").text();
+                String dayType = element.select("day type").text();
+                String format = String.format("\n" + "时间:%s"
+                                + "\n" + "最高温度:%s"
+                                + "\n" + "最低温度:%s"
+                                + "\n" + "天气类型:%s",
+                        date, high, low, dayType);
+                CQ.sendGroupMsg(groupMsg.getFromGroup(),cqCode.at(groupMsg.getFromQQ()) + format);
+            }
+        }
 
         return IMsg.MSG_IGNORE;
     }
-    @Bind(msgType = IType.EVENT_Startup)
-    public void start(QQMessage message){
-        System.out.println("启动事件");
-
-    }
-
 }
 
 
