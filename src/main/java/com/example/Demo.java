@@ -36,11 +36,6 @@ public class Demo extends JcqAppAbstractImpl implements ICQVer, IMsg, IRequest {
 
     private CQCode cqCode = new CQCode();
 
-    @Override
-    public String appInfo() {
-        return CQAPIVER + "," + "com.example.demo";
-    }
-
     @Bind(msgType = {IType.EVENT_GroupMsg})
     public int 查天气(QQMessage message) throws IOException {
         GroupMsg groupMsg = message.getGroupMsg();
